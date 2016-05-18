@@ -1,6 +1,6 @@
 {
     "name": "ng2-dg",
-    "displayName": "ng2-dependency-graph",
+    "displayName": "ng2-dg",
     "description": "generate a Angular2 dependency graph",
     "version": "0.0.2",
     "publisher": "web-dave",
