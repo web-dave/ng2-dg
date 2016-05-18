@@ -7,6 +7,14 @@
   "engines": {
     "vscode": "^1.0.0"
   },
+  "bugs": {
+    "url": "https://github.com/web-dave/ng2-dg/issues"
+  },
+  "homepage": "https://github.com/web-dave/ng2-dg/blob/master/README.md",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web-dave/ng2-dg.git"
+  },
   "categories": [
     "Other"
   ],
