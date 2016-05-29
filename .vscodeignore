@@ -7,8 +7,3 @@ src/**
 .gitignore
 tsconfig.json
 vsc-extension-quickstart.md
-node_modules/angular2-dependencies-graph/screenshots/*
-node_modules/angular2-dependencies-graph/typings
-node_modules/angular2-dependencies-graph/test/
-node_modules/angular2-dependencies-graph/samples/
-node_modules/angular2-dependencies-graph/report/
