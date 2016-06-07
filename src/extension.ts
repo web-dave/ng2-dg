@@ -1,3 +1,5 @@
+/// <reference path="../typings/index.d.ts" />
+
 'use strict';
 
 import * as vscode from 'vscode';
@@ -18,7 +20,7 @@ export function activate(context: vscode.ExtensionContext) {
             tsconfig: cwd + '/tsconfig.json'
         }
         let pkg = require(cwd + '/package.json');
-        let files = [];
+        let files: string[] = [];
         
         if (!fs.existsSync(program.tsconfig)) {
             logger.appendLine('"tsconfig.json" file was not found in the current directory');

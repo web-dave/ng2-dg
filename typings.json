@@ -1,7 +1,8 @@
 {
-  "ambientDependencies": {
-    "typescript": "github:DefinitelyTyped/DefinitelyTyped/typescript/typescript.d.ts#e5a27ea95e47b95333784f1f0d590127b4e39a89",
-    "node": "github:DefinitelyTyped/DefinitelyTyped/node/node.d.ts#e5a27ea95e47b95333784f1f0d590127b4e39a89",
-    "dot": "github:DefinitelyTyped/DefinitelyTyped/dot/dot.d.ts#e5a27ea95e47b95333784f1f0d590127b4e39a89"
+  "globalDependencies": {
+    "dot": "registry:dt/dot#0.0.0+20160317120654",
+    "fs-extra": "registry:dt/fs-extra#0.0.0+20160319124112",
+    "node-4": "registry:dt/node-4#4.0.0+20160524002506",
+    "typescript": "registry:dt/typescript#0.4.0+20160317120654"
   }
 }
