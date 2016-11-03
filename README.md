@@ -6,11 +6,7 @@ A tool that allows you to view your Angular2 application dependencies. Currently
 
 ## Generated Graphs (sample)
 
-![screenshots-1](https://raw.githubusercontent.com/manekinekko/angular2-dependencies-graph/master/screenshots/dependencies-1.png)
-
-
-![screenshots-2](https://raw.githubusercontent.com/manekinekko/angular2-dependencies-graph/master/screenshots/dependencies-2.png)
-
+![screenshots-1](https://raw.githubusercontent.com/manekinekko/angular2-dependencies-graph/master/screenshots/dependencies-4.png)
 
 ## Install
 
@@ -20,7 +16,7 @@ In Visual Studio Code, run  ext install ng2-dg  - or, simply hit  CMD/CTRL + Shi
 
 simply hit  CMD/CTRL + Shift + P and type ng2-dg
 you'll find ng2-dg tsconfig
-select and wait a few seconds.
+select a folder and wait a few seconds.
 You'll find the output at
 `<projectroot>/documentation`
 

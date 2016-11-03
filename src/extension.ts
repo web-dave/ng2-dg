@@ -16,11 +16,11 @@ export function activate(context: vscode.ExtensionContext) {
     let _ng2dg = vscode.commands.registerCommand('extension.ng2dgt', () => {
         let options = { matchOnDescription: false, placeHolder: "Select your sourcefolder" };
         let cwd = vscode.workspace.rootPath;
-        let foldersList = [];
+        let foldersList = ['/'];
         var folders = fs.readdirSync(cwd);
         for (var f = 0; f < folders.length; f++) {
             var foldername = path.join(cwd, folders[f]);
-            var _foldername = folders[f];
+            var _foldername = `${folders[f]}`;
             var stat = fs.lstatSync(foldername);
 
             if (stat.isDirectory()) {
@@ -29,11 +29,16 @@ export function activate(context: vscode.ExtensionContext) {
         };
         // return;
         vscode.window.showQuickPick(foldersList,options).then((data) => {
-            // comment = historyUtil.parseLog(commits[items.indexOf(data)]);
-            logger.appendLine(data);
-            // console.log(comment);
 
-            let tscjson = fromDir(cwd + '/' + data, 'tsconfig.json')
+            let startDir = path.join(cwd, data);
+            // let startDir = cwd + '/' + data;
+            if(data === '/'){
+                startDir = cwd;
+            }
+
+            logger.appendLine(startDir);
+
+            let tscjson = fromDir(startDir, 'tsconfig.json')
             let program = {
                 tsconfig: tscjson
             }
