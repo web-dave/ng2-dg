@@ -25,6 +25,11 @@ class Logger {
         outputChannel.appendLine(msg);
     }
 
+    trace(error, file) { 
+ 		outputChannel.append(`${error}: ${file}`); 
+ 	} 
+
+
 }
 
 export let logger = new Logger();

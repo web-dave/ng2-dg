@@ -1,12 +1,13 @@
-/// <reference path="../../typings/index.d.ts" />
-
 import * as path from 'path';
-import {logger} from './logger';
+import { logger } from './logger';
+import { DOT_TEMPLATE, LEGEND } from './dot.template';
 import * as vscode from 'vscode';
 
 interface IOptions {
 	name?: string;
 	output?: string;
+	displayLegend?: boolean;
+	outputFormats?: string;
 	dot?: {
 		shapeModules: string
 		shapeProviders: string
@@ -19,76 +20,18 @@ export namespace Engine {
 
 	let fs = require('fs-extra');
 	let q = require('q');
-    let projectPath = vscode.workspace.rootPath;
-    let pkg = `${projectPath}/package.json`;
+	let cleanDot: boolean = false;
+	let cleanSvg: boolean = false;
+	let cwd = vscode.workspace.rootPath;
+	let appName = require(cwd + '/package.json').name;
 
-	let appName = require(pkg).name;
-    
 	// http://www.graphviz.org/Documentation/dotguide.pdf
 	export class Dot {
 
 		// http://www.graphviz.org/doc/info/shapes.html
-		template = `
-digraph dependencies {
-  node[shape="ellipse", style="filled", colorscheme={scheme}];
-	splines=ortho;
+		template = DOT_TEMPLATE;
 
-	/* Graph orientation */
-  rankdir=BT;
-
-  {{~it.components :cmp}}
-  subgraph "{{=cmp.name}}" {
-
-    label="{{=cmp.file}}";
-
-    "{{=cmp.name}}" [shape="component"];
-
-    /* providers:start */
-
-    {{~cmp.providers :provider}}
-      "{{=provider.name}}" [fillcolor=1, shape="ellipse"];
-      "{{=provider.name}}" -> "{{=cmp.name}}" /*[label="{{=cmp.file}}"]*/;
-    {{~}}
-
-    /* providers:end */
-
-    /* directives:start */
-
-    node[shape="cds", style="filled", color=5];
-    {{~cmp.directives :directive}}
-      "{{=directive.name}}" [];
-      "{{=directive.name}}" -> "{{=cmp.name}}" /*[label="{{=cmp.file}}"]*/;
-    {{~}}
-
-    /* directives:end */
-
-		/* templateUrl:start */
-
-    node[shape="note", style="filled", color=7];
-    {{~cmp.templateUrl :url}}
-      "{{=url}}" [];
-      "{{=cmp.name}}" -> "{{=url}}" [style=dotted];
-    {{~}}
-
-    /* templateUrl:end */
-
-		/* styleUrls:start */
-
-    node[shape="note", style="filled", color=8];
-    {{~cmp.styleUrls :url}}
-      "{{=url}}" [];
-      "{{=cmp.name}}" -> "{{=url}}" [style=dotted];
-    {{~}}
-
-    /* styleUrls:end */
-
-  }
-  {{~}}
-
-}
-		`;
-
-		cwd = '';
+		cwd = process.cwd();
 
 		files = {
 			component: null
@@ -106,11 +49,13 @@ digraph dependencies {
 
 		constructor(options: IOptions) {
 
-			let baseDir = `${ projectPath }`;
+			let baseDir = `./${appName}/`;
 
 			this.options = {
-				name: `${ appName }`,
-				output: `${baseDir}/`,
+				name: `${appName}`,
+				output: options.output,
+				displayLegend: options.displayLegend,
+				outputFormats: options.outputFormats,
 				dot: {
 					shapeModules: 'component',
 					shapeProviders: 'ellipse',
@@ -121,40 +66,97 @@ digraph dependencies {
 				}
 			};
 
-			if(options.output) {
+			if (options.output) {
 
-				if(typeof this.options.output !== 'string') {
+				if (typeof this.options.output !== 'string') {
 					logger.appendLine('Option "output" has been provided but it is not a valid name.');
 					process.exit(1);
 				}
-
-				this.options.output = options.output;
 			}
 
 			this.paths = {
-				dot: path.join(this.cwd, `${ this.options.output }/dependencies.dot`),
-				json: path.join(this.cwd, `${ this.options.output }/dependencies.json`),
-				svg: path.join(this.cwd, `${ this.options.output }/dependencies.svg`),
-				png: path.join(this.cwd, `${ this.options.output }/dependencies.png`),
-				html: path.join(this.cwd, `${ this.options.output }/dependencies.html`)
+				dot: path.join(this.options.output, '/dependencies.dot'),
+				json: path.join(this.options.output, '/dependencies.json'),
+				svg: path.join(this.options.output, '/dependencies.svg'),
+				png: path.join(this.options.output, '/dependencies.png'),
+				html: path.join(this.options.output, '/dependencies.html')
 			};
 		}
 
 		generateGraph(deps) {
-			let template = this.preprocessTemplates(this.options.dot);
+			let template = this.preprocessTemplates(this.options);
+			let generators = [];
+			console.log(this.options.outputFormats)
+			// Handle svg dependency with dot, and html with svg
+			if (this.options.outputFormats.indexOf('dot') > -1 && this.options.outputFormats.indexOf('svg') === -1 && this.options.outputFormats.indexOf('html') === -1) {
+				generators.push(this.generateDot(template, deps));
+			}
 
-			return this.generateDot(template, deps)
-				.then( _ => this.generateJSON(deps) )
-				.then( _ => this.generateSVG() )
-				.then( _ => this.generateHTML() )
-				//.then( _ => this.generatePNG() );
+			if (this.options.outputFormats.indexOf('svg') > -1 && this.options.outputFormats.indexOf('html') === -1) {
+				generators.push(this.generateDot(template, deps).then(_ => this.generateSVG()));
+				if (this.options.outputFormats.indexOf('svg') > -1 && this.options.outputFormats.indexOf('dot') === -1) {
+					cleanDot = true;
+				}
+			}
+
+			if (this.options.outputFormats.indexOf('json') > -1) {
+				generators.push(this.generateJSON(deps));
+			}
+
+			if (this.options.outputFormats.indexOf('html') > -1) {
+				generators.push(this.generateDot(template, deps).then(_ => this.generateSVG()).then(_ => this.generateHTML()));
+				if (this.options.outputFormats.indexOf('html') > -1 && this.options.outputFormats.indexOf('svg') === -1) {
+					cleanSvg = true;
+				}
+				if (this.options.outputFormats.indexOf('html') > -1 && this.options.outputFormats.indexOf('dot') === -1) {
+					cleanDot = true;
+				}
+			}
+
+
+
+			// todo(WCH): disable PNG creation due to some errors with phantomjs
+			/*
+			if (this.options.outputFormats.indexOf('png') > -1) {
+                generators.push(this.generatePNG());
+            }
+			*/
+
+			return q.all(generators).then(_ => this.cleanGeneratedFiles());
+		}
+
+		private cleanGeneratedFiles() {
+			let d = q.defer();
+			let removeFile = (path) => {
+				let p = q.defer();
+				fs.unlink(path, (error) => {
+					if (error) {
+						p.reject(error);
+					} else {
+						p.resolve();
+					}
+				});
+				return p.promise;
+			};
+			let cleaners = [];
+			if (cleanDot) {
+				cleaners.push(removeFile(this.paths.dot));
+			}
+			if (cleanSvg) {
+				cleaners.push(removeFile(this.paths.svg));
+			}
+			return q.all(cleaners);
 		}
 
 		private preprocessTemplates(options?) {
 			let doT = require('dot');
-			this.template = this.template
-					.replace(/\{scheme\}/g, options.colorScheme);
-			return doT.template(this.template);
+			let result;
+			if (options.displayLegend === 'true' || options.displayLegend === true) {
+				result = this.template.replace(/###legend###/g, LEGEND);
+			} else {
+				result = this.template.replace(/###legend###/g, '""');
+			}
+			return doT.template(result.replace(/###scheme###/g, options.dot.colorScheme));
 		}
 
 		private generateJSON(deps) {
@@ -163,30 +165,60 @@ digraph dependencies {
 				this.paths.json,
 				JSON.stringify(deps, null, 2),
 				(error) => {
-					if(error) {
+					if (error) {
 						d.reject(error);
 					}
-					logger.appendLine('creating JSON, done');
+					logger.appendLine('creating JSON '+ this.paths.json);
 					d.resolve(this.paths.json);
 				}
 			);
 			return d.promise;
 		}
 
+		// @not-used
+		private escape(deps) {
+			return deps.map(d => {
+				for (let prop in d) {
+					if (d.hasOwnProperty(prop)) {
+						let a = d[prop];
+						console.log(a);
+
+						if (Array.isArray(a)) {
+							return this.escape(a);
+						}
+						else if (typeof a === 'string') {
+							a = a.replace(/"/g, '\"');
+							a = a.replace(/'/g, "\'");
+							a = a.replace(/\{/g, "\{");
+							a = a.replace(/\)/g, "\)");
+						}
+					}
+				}
+
+				return d;
+			});
+		}
+
 		private generateDot(template, deps) {
-			logger.appendLine(`creating DOT ${this.paths.dot}`);
+
+			// todo(wch)
+			//deps = this.escape(deps);
 
 			let d = q.defer();
 			fs.outputFile(
 				this.paths.dot,
 				template({
-					components: deps
+					modules: deps
 				}),
 				(error) => {
-					if(error) {
+					if (error) {
 						d.reject(error);
 					}
-					logger.appendLine('creating DOT, done');
+
+					if (cleanDot === false) {
+						logger.appendLine('creating DOT '+ this.paths.dot);
+					}
+
 					d.resolve(this.paths.dot);
 				}
 			);
@@ -195,10 +227,8 @@ digraph dependencies {
 		}
 
 		private generateSVG() {
-			logger.appendLine(`creating SVG  ${this.paths.svg}`);
-
 			let Viz = require('viz.js');
-			let viz_svg = Viz(
+			let vizSvg = Viz(
 				fs.readFileSync(this.paths.dot).toString(), {
 					format: 'svg',
 					engine: 'dot'
@@ -207,12 +237,16 @@ digraph dependencies {
 			let d = q.defer();
 			fs.outputFile(
 				this.paths.svg,
-				viz_svg,
+				vizSvg,
 				(error) => {
-					if(error) {
+					if (error) {
 						d.reject(error);
 					}
-					logger.appendLine('creating SVG, done');
+
+					if (cleanSvg === false) {
+						logger.appendLine('creating SVG '+ this.paths.svg);
+					}
+					
 					d.resolve(this.paths.svg);
 				}
 			);
@@ -220,18 +254,36 @@ digraph dependencies {
 		}
 
 		private generateHTML() {
-			logger.appendLine(`creating HTML, ${this.paths.html}`);
-
 			let svgContent = fs.readFileSync(this.paths.svg).toString();
+			let cssContent = `
+			<style>
+				.edge {
+					transition: opacity 0.5s;
+					opacity:0.2;
+				}
+				.node {
+					transition: transform 0.1s;
+					transform-origin: center center;
+				}
+				.node:hover {
+					transform: scale(1.03);
+				}
+				.node:hover + .edge {
+					opacity:1;
+				}
+			</style>`;
+			let htmlContent = `
+				${svgContent}
+			`;
 			let d = q.defer();
 			fs.outputFile(
 				this.paths.html,
-				svgContent,
+				htmlContent,
 				(error) => {
-					if(error) {
+					if (error) {
 						d.reject(error);
 					}
-					logger.appendLine('creating HTML, done');
+					logger.appendLine('creating HTML '+ this.paths.html);
 					d.resolve(this.paths.html);
 				}
 			);
@@ -239,15 +291,13 @@ digraph dependencies {
 		}
 
 		private generatePNG() {
-			logger.appendLine(`creating PNG, ${this.paths.png}`);
-
-			let svg_to_png = require('svg-to-png');
+			let svgToPng = require('svg-to-png');
 			let d = q.defer();
-			svg_to_png.convert(
+			svgToPng.convert(
 				this.paths.svg,
-				path.join(this.cwd, `${ this.options.output }`)
-			).then( function(){
-				logger.appendLine('creating PNG, done');
+				this.paths.png
+			).then(function () {
+				logger.appendLine('creating PNG '+ this.paths.png);
 				d.resolve(this.paths.image);
 			});
 			return d.promise;
@@ -256,3 +306,4 @@ digraph dependencies {
 	}
 
 }
+

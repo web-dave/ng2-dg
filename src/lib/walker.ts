@@ -1,8 +1,7 @@
-import {logger} from './logger';
 import * as path from 'path';
 import * as ts from 'typescript';
 import { getNewLineCharacter, compilerHost, d } from './utilities';
-
+import { logger } from './logger';
 
 let q = require('q');
 
@@ -80,7 +79,7 @@ export namespace Crawler {
                 if (path.extname(filePath) === '.ts') {
 
                     if (filePath.lastIndexOf('.d.ts') === -1 && filePath.lastIndexOf('spec.ts') === -1) {
-                        logger.info('parsing', filePath);
+                        logger.appendLine('parsing '+ filePath);
 
                         try {
                             this.getSourceFileDecorators(file, deps);
@@ -164,15 +163,15 @@ export namespace Crawler {
 
         }
         private debug(deps: Deps) {
-            logger.debug('debug', `${deps.name}:`);
+            logger.appendLine(`${deps.name}:`);
 
             [
                 'imports', 'exports', 'declarations', 'providers', 'bootstrap'
             ].forEach(symbols => {
                 if (deps[symbols] && deps[symbols].length > 0) {
-                    logger.debug('', `- ${symbols}:`);
+                    logger.appendLine( `- ${symbols}:`);
                     deps[symbols].map(i => i.name).forEach(d => {
-                        logger.debug('', `\t- ${d}`);
+                        logger.appendLine(`\t- ${d}`);
                     });
 
                 }
@@ -437,5 +436,4 @@ export namespace Crawler {
     }
 
 }
-
 
