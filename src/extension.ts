@@ -20,7 +20,7 @@ export function activate(context: vscode.ExtensionContext) {
         var folders = fs.readdirSync(cwd);
         for (var f = 0; f < folders.length; f++) {
             var foldername = path.join(cwd, folders[f]);
-            var _foldername = `${folders[f]}`;
+            var _foldername = folders[f];
             var stat = fs.lstatSync(foldername);
 
             if (stat.isDirectory()) {

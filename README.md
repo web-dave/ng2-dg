@@ -14,10 +14,11 @@ In Visual Studio Code, run  ext install ng2-dg  - or, simply hit  CMD/CTRL + Shi
 
 ## run
 
-simply hit  CMD/CTRL + Shift + P and type ng2-dg
-you'll find ng2-dg tsconfig
-select a folder and wait a few seconds.
-You'll find the output at
+* simply hit  CMD/CTRL + Shift + P
+* type ng2-dg
+* you'll find ng2-dg tsconfig
+* select a folder and wait a few seconds.
+* You'll find the output at
 `<projectroot>/documentation`
 
 **have fun**
